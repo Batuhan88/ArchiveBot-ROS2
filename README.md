@@ -257,3 +257,48 @@ git pull --ff-only origin main
 ~~~
 
 Yeni ozellikleri ayri branch'te gelistirin, commit edin ve Pull Request acin. Dogrudan `main` uzerinde ayni dosyaya eszamanli degisiklik yapmaktan kacinmak faydalidir.
+
+## VirtualBox ile Calistirma
+
+ArchiveBot, ROS 2 Lyrical ve Gazebo Sim ile gelistirilmistir.
+
+VirtualBox ortaminda LiDAR'in dogru mesafe olcmesi icin
+yazilimsal OpenGL gerekebilir.
+
+### Projeyi derleme
+
+```bash
+cd ~/archivebot_ws
+source /opt/ros/lyrical/setup.bash
+colcon build --symlink-install --packages-select archivebot_description
+source install/setup.bash
+```
+
+### Tam gorevi baslatma
+
+```bash
+LIBGL_ALWAYS_SOFTWARE=1 ros2 launch archivebot_description archivebot.launch.py
+```
+
+### Yalnizca Gazebo ve sensorleri baslatma
+
+```bash
+LIBGL_ALWAYS_SOFTWARE=1 ros2 launch archivebot_description archivebot.launch.py start_navigation:=false
+```
+
+### Hangi navigasyon surumu kullaniliyor?
+
+- archivebot_navigation_v11.py: Guncel navigasyon surumu.
+- archivebot_navigation_v10.py: Onceki surum.
+- v5-v9: Gelistirme ve test surumleri.
+
+Varsayilan launch dosyasi V11 kullanir.
+
+### Bilinen notlar
+
+VirtualBox ortaminda yazilimsal OpenGL performansi
+dusurebilir. LiDAR testi 2.801 metre on mesafe
+ve 144 gecerli isin ile basarili olmustur.
+
+Tam gorevin son konfigurasyonda yeniden tamamlandigi
+henuz dogrulanmamistir.
