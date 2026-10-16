@@ -81,7 +81,46 @@ archivebot_ws/
         └── worlds/archive_room.sdf
 ~~~
 
-**Paketleme notu:** Bu repository'de su an `package.xml` ve `CMakeLists.txt` yoktur. Bu nedenle asagidaki calistirma adimlari dosyalari dogrudan kullanir; henuz `colcon build` gerektiren bir ROS 2 paketi olarak dokumante edilmemistir.
+**Paketleme notu:** `package.xml`, `CMakeLists.txt` ve tek komutluk launch dosyasi eklendi. Yeni launch henuz VM'de test edilmedi; asagidaki 6-terminal yontemi calisan referans yontemdir.
+
+
+
+## Tek komutla baslatma (yeni, test asamasinda)
+
+ROS 2 `ament_cmake` paket dosyalari ve `launch/archivebot.launch.py` eklendi.
+Bu akis henuz gelistirme VM'inde test edilmedi; ilk denemede **navigasyon kapali** baslatin.
+Eski 6-terminal yontemi halen yukarida bulunuyor ve calisan referans yontemdir.
+
+Bir terminalde:
+
+~~~bash
+cd ~/archivebot_ws
+git pull --ff-only origin main
+source /opt/ros/lyrical/setup.bash
+colcon build --symlink-install --packages-select archivebot_description
+source install/setup.bash
+ros2 launch archivebot_description archivebot.launch.py start_navigation:=false
+~~~
+
+Gazebo dunyasi, robot, iki bridge ve kamera node'u acilmalidir. Acilmazsa terminaldeki hata mesajini kaydedin.
+Yeni terminalde `source /opt/ros/lyrical/setup.bash && source ~/archivebot_ws/install/setup.bash` sonrasinda:
+
+~~~bash
+ros2 topic info /scan
+ros2 topic info /archivebot/ground_truth/odom
+ros2 topic info /archivebot/checkpoint_status
+gz model -m archivebot --pose
+~~~
+
+Bu komutlarla robot ve sensorler dogrulandıktan sonra tum launch surecini `Ctrl+C` ile kapatip yeniden calistirin:
+
+~~~bash
+ros2 launch archivebot_description archivebot.launch.py
+~~~
+
+Bu kez V11 navigasyonu da baslar. Tek komutluk launch, Gazebo'ya 20 saniyelik yukleme suresi verir; robot spawn islemi tamamlandiktan sonra V11 icin 5 saniye daha bekler. Yavas VM'lerde bu sureler yetersiz kalabilir ve ayarlanmasi gerekebilir. `archivebot_navigation_v11.py` ile robotun Xacro ve SDF dosyalarina dokunulmadi.
+
+> Bu launch'ı, halihazirda Gazebo veya ArchiveBot node'lari calisirken baslatmayin. Cift `/cmd_vel` yayinlayicisi veya cift robot olusabilir. Terminalde `colcon: command not found` cikarsa ROS 2 ortaminda `python3-colcon-common-extensions` paketini kurun. `package.xml` dosyasindaki maintainer e-postasi ve `TODO` lisans alani proje ekibi tarafindan daha sonra doldurulmalidir.
 
 ## Calistirma (adim adim)
 
