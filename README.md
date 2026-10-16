@@ -34,7 +34,7 @@ Proje su ortamda gelistirildi ve calistirildi:
 
 - Ubuntu sanal makine (VirtualBox)
 - **ROS 2 Lyrical** (mevcut gelistirme ortaminda `/opt/ros/lyrical`)
-- Gazebo Sim (Gazebo `gz` araci ve OGRE render motoru)
+- Gazebo Sim (`ogre2` sensor motoru; VirtualBox'ta yazilimsal OpenGL ile test edildi)
 - Python 3, `rclpy`, `OpenCV`, `NumPy`, `cv_bridge`
 - `ros_gz_sim`, `ros_gz_bridge`, `ros_gz_interfaces`, `xacro`
 
@@ -43,7 +43,7 @@ ROS 2 ve Gazebo'nun ilgili surumlerini once resmi kurulum rehberlerine gore kuru
 ~~~bash
 source /opt/ros/lyrical/setup.bash
 sudo apt update
-sudo apt install -y git python3-opencv python3-numpy \
+sudo apt install -y git build-essential python3-colcon-common-extensions python3-opencv python3-numpy \
   ros-lyrical-xacro ros-lyrical-cv-bridge \
   ros-lyrical-ros-gz-sim ros-lyrical-ros-gz-bridge \
   ros-lyrical-ros-gz-interfaces
@@ -81,15 +81,15 @@ archivebot_ws/
         └── worlds/archive_room.sdf
 ~~~
 
-**Paketleme notu:** `package.xml`, `CMakeLists.txt` ve tek komutluk launch dosyasi eklendi. Yeni launch henuz VM'de test edilmedi; asagidaki 6-terminal yontemi calisan referans yontemdir.
+**Paketleme notu:** `package.xml`, `CMakeLists.txt` ve tek komutluk launch dosyasi eklendi. Tek komutluk baslatma VirtualBox ortaminda test edildi. Asagidaki 6-terminal yontemi sorun giderme icin alternatif olarak korunuyor.
 
 
 
-## Tek komutla baslatma (yeni, test asamasinda)
+## Onerilen: Tek komutla baslatma (VM'de test edildi)
 
-ROS 2 `ament_cmake` paket dosyalari ve `launch/archivebot.launch.py` eklendi.
-Bu akis henuz gelistirme VM'inde test edilmedi; ilk denemede **navigasyon kapali** baslatin.
-Eski 6-terminal yontemi halen yukarida bulunuyor ve calisan referans yontemdir.
+ROS 2 `ament_cmake` paketi ve `launch/archivebot.launch.py` birden cok terminal yerine tek komutla Gazebo, robot, kopruler, kamera ve istege bagli V11 navigasyonunu acar.
+
+**VirtualBox:** GPU LiDAR tum acilarda 0.15 m yanlis olcum yapabiliyor. Modelde LiDAR konumu +8 cm, dunya sensor motoru `ogre2` olarak guncellendi. Olcumler yazilimsal OpenGL ile normale dondugu icin asagidaki komutlarda **`LIBGL_ALWAYS_SOFTWARE=1`** kullanin. Bu ayar simulasyonu yavaslatabilir. Diger sistemlerde gerekliyse kullanin.
 
 Bir terminalde:
 
@@ -99,11 +99,11 @@ git pull --ff-only origin main
 source /opt/ros/lyrical/setup.bash
 colcon build --symlink-install --packages-select archivebot_description
 source install/setup.bash
-ros2 launch archivebot_description archivebot.launch.py start_navigation:=false
+LIBGL_ALWAYS_SOFTWARE=1 ros2 launch archivebot_description archivebot.launch.py start_navigation:=false
 ~~~
 
 Gazebo dunyasi, robot, iki bridge ve kamera node'u acilmalidir. Acilmazsa terminaldeki hata mesajini kaydedin.
-Yeni terminalde `source /opt/ros/lyrical/setup.bash && source ~/archivebot_ws/install/setup.bash` sonrasinda:
+Kontrol etmek icin yeni terminalde `source /opt/ros/lyrical/setup.bash && source ~/archivebot_ws/install/setup.bash` sonrasinda:
 
 ~~~bash
 ros2 topic info /scan
@@ -115,10 +115,10 @@ gz model -m archivebot --pose
 Bu komutlarla robot ve sensorler dogrulandıktan sonra tum launch surecini `Ctrl+C` ile kapatip yeniden calistirin:
 
 ~~~bash
-ros2 launch archivebot_description archivebot.launch.py
+LIBGL_ALWAYS_SOFTWARE=1 ros2 launch archivebot_description archivebot.launch.py start_navigation:=true
 ~~~
 
-Bu kez V11 navigasyonu da baslar. Tek komutluk launch, Gazebo'ya 20 saniyelik yukleme suresi verir; robot spawn islemi tamamlandiktan sonra V11 icin 5 saniye daha bekler. Yavas VM'lerde bu sureler yetersiz kalabilir ve ayarlanmasi gerekebilir. `archivebot_navigation_v11.py` ile robotun Xacro ve SDF dosyalarina dokunulmadi.
+Bu kez V11 navigasyonu da baslar. Tek komutluk launch, Gazebo'ya 20 saniyelik yukleme suresi verir; robot spawn islemi tamamlandiktan sonra V11 icin 5 saniye daha bekler. Yavas VM'lerde bu sureler yetersiz kalabilir ve ayarlanmasi gerekebilir. V11 navigasyon kodu degistirilmedi; LiDAR sensoru ve dunya render ayarlari duzeltildi. Testte 144/180 gecerli LiDAR isini ve 2.801 m on mesafe elde edildi; robot navigasyona baslayip ilk hedefe ulasti. Son konfiguras­yonda tam turun ve parkin basariyla bittigi henuz tekrar dogrulanmadi.
 
 > Bu launch'ı, halihazirda Gazebo veya ArchiveBot node'lari calisirken baslatmayin. Cift `/cmd_vel` yayinlayicisi veya cift robot olusabilir. Terminalde `colcon: command not found` cikarsa ROS 2 ortaminda `python3-colcon-common-extensions` paketini kurun. `package.xml` dosyasindaki maintainer e-postasi ve `TODO` lisans alani proje ekibi tarafindan daha sonra doldurulmalidir.
 
@@ -130,7 +130,7 @@ Bu kez V11 navigasyonu da baslar. Tek komutluk launch, Gazebo'ya 20 saniyelik yu
 
 ~~~bash
 source /opt/ros/lyrical/setup.bash
-gz sim -r -v 3 "$HOME/archivebot_ws/src/archivebot_description/worlds/archive_room.sdf" --render-engine ogre
+LIBGL_ALWAYS_SOFTWARE=1 gz sim -r -v 3 "$HOME/archivebot_ws/src/archivebot_description/worlds/archive_room.sdf" --render-engine ogre
 ~~~
 
 Gazebo penceresi acilmali ve `archive_room` gorunmelidir. Simulasyon duraklatilmis ise **Play** tusuna basin.
@@ -244,7 +244,8 @@ Ardindan Terminal 4'teki create komutunu tekrar kullanabilirsiniz.
 - VirtualBox ortaminda Gazebo'nun real-time factor (RTF) degeri dusuk olabiliyor; toplam gorev suresi bundan etkileniyor.
 - V11'in test edilen tam gorev suresi, gelistirme VM'inde yaklasik **10 dakika 34 saniye** idi; her bilgisayarda ayni sure garanti edilmez.
 - Gorevi **3–4 dakika** icinde bitirme hedefi ileriye donuk performans calismasidir.
-- ROS 2 paket metadata dosyalari ve otomatik launch dosyalarinin eklenmesi planlanabilir.
+- Tek komutluk ROS 2 launch ve paket metadata mevcut. `package.xml` icindeki maintainer ve lisans alanlari yayimdan once tamamlanmalidir.
+- Bazi kapanislarda `parameter_bridge` exit code -11 bildirildi; simülasyonu temiz kapatmak ve yeniden baslatmak gerekebilir.
 - Guvenlik esiklerini rastgele dusurmeden once fren mesafesi ve sensor gecikmeleri test edilmelidir.
 
 ## Ekip calismasi
@@ -257,48 +258,3 @@ git pull --ff-only origin main
 ~~~
 
 Yeni ozellikleri ayri branch'te gelistirin, commit edin ve Pull Request acin. Dogrudan `main` uzerinde ayni dosyaya eszamanli degisiklik yapmaktan kacinmak faydalidir.
-
-## VirtualBox ile Calistirma
-
-ArchiveBot, ROS 2 Lyrical ve Gazebo Sim ile gelistirilmistir.
-
-VirtualBox ortaminda LiDAR'in dogru mesafe olcmesi icin
-yazilimsal OpenGL gerekebilir.
-
-### Projeyi derleme
-
-```bash
-cd ~/archivebot_ws
-source /opt/ros/lyrical/setup.bash
-colcon build --symlink-install --packages-select archivebot_description
-source install/setup.bash
-```
-
-### Tam gorevi baslatma
-
-```bash
-LIBGL_ALWAYS_SOFTWARE=1 ros2 launch archivebot_description archivebot.launch.py
-```
-
-### Yalnizca Gazebo ve sensorleri baslatma
-
-```bash
-LIBGL_ALWAYS_SOFTWARE=1 ros2 launch archivebot_description archivebot.launch.py start_navigation:=false
-```
-
-### Hangi navigasyon surumu kullaniliyor?
-
-- archivebot_navigation_v11.py: Guncel navigasyon surumu.
-- archivebot_navigation_v10.py: Onceki surum.
-- v5-v9: Gelistirme ve test surumleri.
-
-Varsayilan launch dosyasi V11 kullanir.
-
-### Bilinen notlar
-
-VirtualBox ortaminda yazilimsal OpenGL performansi
-dusurebilir. LiDAR testi 2.801 metre on mesafe
-ve 144 gecerli isin ile basarili olmustur.
-
-Tam gorevin son konfigurasyonda yeniden tamamlandigi
-henuz dogrulanmamistir.
