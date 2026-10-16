@@ -9,7 +9,7 @@ import tempfile
 from pathlib import Path
 
 import xacro
-from ament_index_python.packages import get_package_share_directory
+from ament_index_python.packages import get_package_prefix, get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, LogInfo, RegisterEventHandler, TimerAction
 from launch.conditions import IfCondition
@@ -20,6 +20,9 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     share = Path(get_package_share_directory('archivebot_description'))
+    # Scripts are installed into libexec. Execute them via Python explicitly so
+    # checkout file permissions do not prevent launch on symlink installs.
+    libexec = Path(get_package_prefix('archivebot_description')) / 'lib' / 'archivebot_description'
     world = share / 'worlds' / 'archive_room.sdf'
     model = share / 'models' / 'archivebot_v9.urdf.xacro'
     bridge_config = share / 'config' / 'bridge.yaml'
@@ -57,10 +60,8 @@ def generate_launch_description():
         output='screen',
     )
 
-    vision = Node(
-        package='archivebot_description',
-        executable='archivebot_vision.py',
-        name='archivebot_vision',
+    vision = ExecuteProcess(
+        cmd=['python3', str(libexec / 'archivebot_vision.py')],
         output='screen',
     )
 
@@ -89,10 +90,8 @@ def generate_launch_description():
             TimerAction(
                 period=5.0,
                 actions=[
-                    Node(
-                        package='archivebot_description',
-                        executable='archivebot_navigation_v11.py',
-                        name='archivebot_navigation_v11',
+                    ExecuteProcess(
+                        cmd=['python3', str(libexec / 'archivebot_navigation_v11.py')],
                         condition=IfCondition(start_navigation),
                         output='screen',
                     )
