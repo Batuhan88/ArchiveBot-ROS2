@@ -1,0 +1,346 @@
+<?xml version="1.0"?>
+<robot name="archivebot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:property name="wheel_radius" value="0.12"/>
+  <xacro:property name="wheel_width" value="0.05"/>
+  <xacro:property name="wheel_y" value="0.29"/>
+
+  <!-- Main robot body -->
+  <link name="base_link">
+    <inertial>
+      <mass value="5.0"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="0.10" ixy="0" ixz="0"
+               iyy="0.19" iyz="0" izz="0.27"/>
+    </inertial>
+
+    <visual>
+      <geometry>
+        <box size="0.60 0.44 0.16"/>
+      </geometry>
+      <material name="navy">
+        <color rgba="0.08 0.20 0.38 1"/>
+      </material>
+    </visual>
+
+    <!-- Narrow front nose -->
+    <visual>
+      <origin xyz="0.32 0 0.01"/>
+      <geometry>
+        <box size="0.18 0.25 0.11"/>
+      </geometry>
+      <material name="orange">
+        <color rgba="1.0 0.42 0.08 1"/>
+      </material>
+    </visual>
+
+    <!-- Upper sensor platform -->
+    <visual>
+      <origin xyz="-0.04 0 0.13"/>
+      <geometry>
+        <box size="0.36 0.30 0.08"/>
+      </geometry>
+      <material name="silver">
+        <color rgba="0.70 0.78 0.84 1"/>
+      </material>
+    </visual>
+
+    <!-- Sensor mounting tower -->
+    <visual>
+      <origin xyz="0.08 0 0.23"/>
+      <geometry>
+        <cylinder radius="0.055" length="0.13"/>
+      </geometry>
+      <material name="cyan">
+        <color rgba="0.05 0.72 0.84 1"/>
+      </material>
+    </visual>
+
+    <collision>
+      <geometry>
+        <box size="0.60 0.44 0.16"/>
+      </geometry>
+    </collision>
+
+    <collision>
+      <origin xyz="0.32 0 0.01"/>
+      <geometry>
+        <box size="0.18 0.25 0.11"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Two driven wheels -->
+  <xacro:macro name="drive_wheel" params="side y">
+    <link name="${side}_wheel_link">
+      <inertial>
+        <mass value="0.5"/>
+        <inertia ixx="0.0022" ixy="0" ixz="0"
+                 iyy="0.0036" iyz="0" izz="0.0022"/>
+      </inertial>
+
+      <visual>
+        <origin rpy="1.5707963 0 0"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}"
+                    length="${wheel_width}"/>
+        </geometry>
+        <material name="rubber">
+          <color rgba="0.10 0.10 0.12 1"/>
+        </material>
+      </visual>
+
+      <collision>
+        <origin rpy="1.5707963 0 0"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}"
+                    length="${wheel_width}"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="${side}_wheel_joint" type="continuous">
+      <parent link="base_link"/>
+      <child link="${side}_wheel_link"/>
+      <origin xyz="0.14 ${y} -0.105"/>
+      <axis xyz="0 1 0"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:drive_wheel side="left" y="${wheel_y}"/>
+  <xacro:drive_wheel side="right" y="${-wheel_y}"/>
+
+  <!-- Rear spherical support -->
+  <link name="rear_caster_link">
+    <inertial>
+      <mass value="0.1"/>
+      <inertia ixx="0.0002" ixy="0" ixz="0"
+               iyy="0.0002" iyz="0" izz="0.0002"/>
+    </inertial>
+
+    <visual>
+      <geometry>
+        <sphere radius="0.075"/>
+      </geometry>
+      <material name="gray">
+        <color rgba="0.4 0.4 0.4 1"/>
+      </material>
+    </visual>
+
+    <collision>
+      <geometry>
+        <sphere radius="0.075"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="rear_caster_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="rear_caster_link"/>
+    <origin xyz="-0.23 0 -0.15"/>
+  </joint>
+
+  <!-- Gazebo differential drive -->
+  <gazebo>
+    <plugin filename="gz-sim-diff-drive-system"
+            name="gz::sim::systems::DiffDrive">
+      <left_joint>left_wheel_joint</left_joint>
+      <right_joint>right_wheel_joint</right_joint>
+      <wheel_separation>0.58</wheel_separation>
+      <wheel_radius>0.12</wheel_radius>
+      <topic>/cmd_vel</topic>
+      <odom_topic>/odom</odom_topic>
+      <tf_topic>/tf</tf_topic>
+      <frame_id>odom</frame_id>
+      <child_frame_id>base_link</child_frame_id>
+    </plugin>
+  
+  <!-- V9 Gazebo gercek konum yayini -->
+  <plugin filename="gz-sim-odometry-publisher-system"
+          name="gz::sim::systems::OdometryPublisher">
+    <odom_publish_frequency>20</odom_publish_frequency>
+    <dimensions>2</dimensions>
+    <odom_topic>/archivebot/ground_truth/odom</odom_topic>
+    <odom_frame>world</odom_frame>
+    <robot_base_frame>archivebot/base_link</robot_base_frame>
+    <tf_topic>/archivebot/ground_truth/pose</tf_topic>
+  </plugin>
+</gazebo>
+
+
+  <!-- ArchiveBot 360-degree LiDAR -->
+  <link name="lidar_link">
+    <inertial>
+      <mass value="0.12"/>
+      <inertia ixx="0.0002" ixy="0" ixz="0"
+               iyy="0.0002" iyz="0" izz="0.0002"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <cylinder radius="0.065" length="0.06"/>
+      </geometry>
+      <material name="lidar_dark">
+        <color rgba="0.08 0.08 0.10 1"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="lidar_fixed_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="lidar_link"/>
+    <origin xyz="0.08 0 0.34"/>
+  </joint>
+
+  <gazebo reference="lidar_link">
+    <sensor name="archive_lidar" type="gpu_lidar">
+      <always_on>true</always_on>
+      <update_rate>5</update_rate>
+      <visualize>false</visualize>
+      <topic>/scan</topic>
+      <gz_frame_id>lidar_link</gz_frame_id>
+      <lidar>
+        <scan>
+          <horizontal>
+            <samples>180</samples>
+            <resolution>1</resolution>
+            <min_angle>-3.14159</min_angle>
+            <max_angle>3.14159</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.15</min>
+          <max>6.0</max>
+          <resolution>0.01</resolution>
+        </range>
+      </lidar>
+    </sensor>
+  </gazebo>
+
+
+  <!-- ArchiveBot RGB Camera -->
+  <link name="camera_link">
+    <inertial>
+      <mass value="0.15"/>
+      <inertia ixx="0.0003" ixy="0" ixz="0"
+               iyy="0.0003" iyz="0" izz="0.0003"/>
+    </inertial>
+
+    <visual>
+      <geometry>
+        <box size="0.08 0.10 0.07"/>
+      </geometry>
+      <material name="camera_black">
+        <color rgba="0.08 0.08 0.1 1"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="camera_fixed_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_link"/>
+    <origin xyz="0.33 0 0.20" rpy="0 0 0"/>
+  </joint>
+
+  <gazebo reference="camera_link">
+    <sensor name="archive_camera" type="camera">
+      <always_on>true</always_on>
+      <update_rate>5</update_rate>
+      <visualize>false</visualize>
+      <topic>/archivebot/camera/image</topic>
+      <gz_frame_id>camera_link</gz_frame_id>
+
+      <camera>
+        <horizontal_fov>1.2</horizontal_fov>
+        <image>
+          <width>320</width>
+          <height>240</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.1</near>
+          <far>12.0</far>
+        </clip>
+      </camera>
+    </sensor>
+  </gazebo>
+
+
+  <!-- ArchiveBot IMU Sensor -->
+  <link name="imu_link">
+    <inertial>
+      <mass value="0.06"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0"
+               iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.06 0.05 0.03"/>
+      </geometry>
+      <material name="imu_green">
+        <color rgba="0.1 0.8 0.3 1"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="imu_fixed_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+    <origin xyz="-0.12 0 0.19"/>
+  </joint>
+
+  <gazebo reference="imu_link">
+    <sensor name="archive_imu" type="imu">
+      <always_on>true</always_on>
+      <update_rate>30</update_rate>
+      <topic>/archivebot/imu</topic>
+      <gz_frame_id>imu_link</gz_frame_id>
+    </sensor>
+  </gazebo>
+
+
+  <!-- ArchiveBot Front Safety Bumper -->
+  <link name="bumper_link">
+    <inertial>
+      <mass value="0.10"/>
+      <inertia ixx="0.0002" ixy="0" ixz="0"
+               iyy="0.0002" iyz="0" izz="0.0002"/>
+    </inertial>
+
+    <visual>
+      <geometry>
+        <box size="0.06 0.34 0.12"/>
+      </geometry>
+      <material name="safety_orange">
+        <color rgba="1.0 0.28 0.02 1"/>
+      </material>
+    </visual>
+
+    <collision>
+      <geometry>
+        <box size="0.06 0.34 0.12"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="bumper_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="bumper_link"/>
+    <origin xyz="0.44 0 0.05"/>
+  </joint>
+
+  <gazebo reference="bumper_joint">
+    <preserveFixedJoint>true</preserveFixedJoint>
+  </gazebo>
+
+  <gazebo reference="bumper_link">
+    <sensor name="archive_bumper" type="contact">
+      <always_on>true</always_on>
+      <update_rate>20</update_rate>
+      <topic>/archivebot/bumper/contacts</topic>
+      <contact>
+        <collision>bumper_link_collision</collision>
+      </contact>
+    </sensor>
+  </gazebo>
+
+</robot>

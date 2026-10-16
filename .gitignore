@@ -1,0 +1,35 @@
+# ROS 2 build files
+build/
+install/
+log/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Backups
+**/backups/
+
+# Generated reports
+reports/
+*.csv
+
+# Local settings and secrets
+.env
+.env.*
+!.env.example
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.log
+
+# Old backup files
+*.bak
+*.backup
+*_backup
+*.bak
+*.backup
+*_backup
+**/backups/
